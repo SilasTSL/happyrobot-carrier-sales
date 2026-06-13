@@ -1,3 +1,3 @@
-from app.auth.auth import APIKeyDep, verify_api_key
+from app.auth.auth import require_api_key
 
-__all__ = ["APIKeyDep", "verify_api_key"]
+__all__ = ["require_api_key"]
