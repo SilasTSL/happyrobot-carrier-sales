@@ -1,1 +1,13 @@
-# TODO: multi-stage build — Stage 1: Node (build frontend), Stage 2: Python (serve backend + static assets)
+FROM python:3.12-slim
+
+WORKDIR /backend
+
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ ./
+
+ENV PORT=8000
+EXPOSE 8000
+
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
