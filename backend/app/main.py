@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.database import Base, SessionLocal, engine
 from app.seed import seed_loads
+from app.routers import loads
 import app.models  # noqa: F401 — registers models with Base metadata
 
 
@@ -19,6 +20,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Acme Logistics — Inbound Carrier Sales", lifespan=lifespan)
+
+app.include_router(loads.router)
 
 
 @app.get("/health")
