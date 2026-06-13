@@ -8,7 +8,6 @@ from app.database.models import OutcomeEnum, SentimentEnum
 class CallRecordCreate(BaseModel):
     mc_number: str | None = None
     carrier_name: str | None = None
-    verification_passed: bool
     load_id: int | None = None
     final_rate: float | None = None
     negotiation_rounds: int = 0
@@ -23,7 +22,6 @@ class CallRecordRead(BaseModel):
     timestamp: datetime
     mc_number: str | None
     carrier_name: str | None
-    verification_passed: bool
     load_id: int | None
     loadboard_rate: float | None
     max_rate: float | None
