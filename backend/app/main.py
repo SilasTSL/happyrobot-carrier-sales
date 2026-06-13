@@ -2,13 +2,19 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine
+from app.seed import seed_loads
 import app.models  # noqa: F401 — registers models with Base metadata
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        seed_loads(db)
+    finally:
+        db.close()
     yield
 
 
