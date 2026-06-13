@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import CallRecord
-from app.schemas import CallRecordRead
+from app.database.models import CallRecord
+from app.schemas.call_records import CallRecordRead
 
 router = APIRouter(prefix="/call-records", tags=["call-records"])
 
