@@ -1,6 +1,9 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
+logging.basicConfig(level=logging.INFO)
 
 from app.database import Base, SessionLocal, engine
 from app.seed import seed_loads
