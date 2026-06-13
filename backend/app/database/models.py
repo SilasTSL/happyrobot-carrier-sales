@@ -56,7 +56,6 @@ class CallRecord(Base):
 
     mc_number: Mapped[str | None] = mapped_column(String, nullable=True)
     carrier_name: Mapped[str | None] = mapped_column(String, nullable=True)
-    verification_passed: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
     load_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("loads.load_id"), nullable=True

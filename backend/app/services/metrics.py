@@ -22,8 +22,7 @@ def log_call_record(db: Session, data: CallRecordCreate) -> CallRecord:
     record = CallRecord(
         mc_number=data.mc_number,
         carrier_name=data.carrier_name,
-        verification_passed=data.verification_passed,
-        load_id=data.load_id,
+load_id=data.load_id,
         loadboard_rate=loadboard_rate,
         max_rate=max_rate,
         final_rate=data.final_rate,
