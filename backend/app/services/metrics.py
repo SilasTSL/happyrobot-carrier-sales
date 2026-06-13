@@ -30,8 +30,6 @@ def log_call_record(db: Session, data: CallRecordCreate) -> CallRecord:
         negotiation_rounds=data.negotiation_rounds,
         outcome=data.outcome,
         sentiment=data.sentiment,
-        call_duration_seconds=data.call_duration_seconds,
-        transcript=data.transcript,
     )
     db.add(record)
 

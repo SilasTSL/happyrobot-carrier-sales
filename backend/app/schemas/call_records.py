@@ -14,8 +14,6 @@ class CallRecordCreate(BaseModel):
     negotiation_rounds: int = 0
     outcome: OutcomeEnum
     sentiment: SentimentEnum
-    call_duration_seconds: int | None = None
-    transcript: str | None = None
 
 
 class CallRecordRead(BaseModel):
@@ -33,5 +31,3 @@ class CallRecordRead(BaseModel):
     negotiation_rounds: int
     outcome: OutcomeEnum
     sentiment: SentimentEnum
-    call_duration_seconds: int | None
-    transcript: str | None
