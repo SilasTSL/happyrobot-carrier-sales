@@ -74,5 +74,3 @@ class CallRecord(Base):
     outcome: Mapped[OutcomeEnum] = mapped_column(Enum(OutcomeEnum), nullable=False)
     sentiment: Mapped[SentimentEnum] = mapped_column(Enum(SentimentEnum), nullable=False)
 
-    call_duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
