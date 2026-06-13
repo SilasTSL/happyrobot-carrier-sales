@@ -6,9 +6,8 @@ from fastapi import FastAPI
 logging.basicConfig(level=logging.INFO)
 
 from app.database import Base, SessionLocal, engine
-from app.seed import seed_call_records, seed_loads
+from app.database.seed import seed_call_records, seed_loads
 from app.routers import call_records, loads
-import app.models  # noqa: F401 — registers models with Base metadata
 
 
 @asynccontextmanager

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Load
-from app.schemas import LoadRead
+from app.database.models import Load
+from app.schemas.loads import LoadRead
 
 router = APIRouter(prefix="/loads", tags=["loads"])
 
