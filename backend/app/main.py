@@ -1,4 +1,5 @@
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -36,9 +37,13 @@ app = FastAPI(
     dependencies=[Depends(require_api_key)],
 )
 
+_origins = ["http://localhost:5173", "http://localhost:4173"]
+if frontend_url := os.getenv("FRONTEND_URL"):
+    _origins.append(frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:4173"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
