@@ -13,9 +13,9 @@ import api from '../lib/api'
 const OUTCOMES = ['booked', 'not_eligible', 'no_match', 'rate_not_agreed', 'hung_up']
 const SENTIMENTS = ['positive', 'neutral', 'negative']
 
-function isoRange(dateRange) {
+function startParam(dateRange) {
   if (!dateRange) return {}
-  return { start: dateRange.start.toISOString(), end: dateRange.end.toISOString() }
+  return { start: dateRange.start.toISOString() }
 }
 
 function exportCsv(rows) {
@@ -133,7 +133,7 @@ const COLUMNS = [
 
 export default function CallLogPage() {
   const { dateRange } = useDateRange()
-  const params = isoRange(dateRange)
+  const params = startParam(dateRange)
 
   const [page, setPage] = useState(1)
   const [outcome, setOutcome] = useState('')
@@ -152,7 +152,7 @@ export default function CallLogPage() {
 
   const { data, isPending, isError, error } = useQuery({
     queryKey: ['calls', queryParams],
-    queryFn: () => api.get('/calls', { params: queryParams }).then(r => r.data),
+    queryFn: () => api.get('/calls', { params: { ...queryParams, end: new Date().toISOString() } }).then(r => r.data),
     placeholderData: keepPreviousData,
   })
 

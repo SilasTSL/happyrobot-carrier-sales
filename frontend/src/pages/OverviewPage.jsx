@@ -11,9 +11,13 @@ import { KpiSkeleton, ChartSkeleton } from '../components/ui/Skeleton'
 import { currency, pct, num, decimal } from '../lib/format'
 import api from '../lib/api'
 
-function isoRange(dateRange) {
+function startParam(dateRange) {
   if (!dateRange) return {}
-  return { start: dateRange.start.toISOString(), end: dateRange.end.toISOString() }
+  return { start: dateRange.start.toISOString() }
+}
+
+function withNow(params) {
+  return { ...params, end: new Date().toISOString() }
 }
 
 function ErrorBanner({ msg }) {
@@ -26,21 +30,21 @@ function ErrorBanner({ msg }) {
 
 export default function OverviewPage() {
   const { dateRange } = useDateRange()
-  const params = isoRange(dateRange)
+  const params = startParam(dateRange)
 
   const summary = useQuery({
     queryKey: ['summary', params],
-    queryFn: () => api.get('/metrics/summary', { params }).then(r => r.data),
+    queryFn: () => api.get('/metrics/summary', { params: withNow(params) }).then(r => r.data),
   })
 
   const timeseries = useQuery({
     queryKey: ['timeseries', params],
-    queryFn: () => api.get('/metrics/timeseries', { params: { ...params, interval: 'day' } }).then(r => r.data),
+    queryFn: () => api.get('/metrics/timeseries', { params: { ...withNow(params), interval: 'day' } }).then(r => r.data),
   })
 
   const breakdowns = useQuery({
     queryKey: ['breakdowns', params],
-    queryFn: () => api.get('/metrics/breakdowns', { params }).then(r => r.data),
+    queryFn: () => api.get('/metrics/breakdowns', { params: withNow(params) }).then(r => r.data),
   })
 
   const s = summary.data
