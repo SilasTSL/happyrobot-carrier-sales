@@ -4,5 +4,6 @@ uvicorn[standard]
 sqlalchemy
 pydantic
 python-jose[cryptography]
+bcrypt
 httpx
 pytest

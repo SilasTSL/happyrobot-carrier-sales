@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.auth.auth import require_admin_key
 from app.database import get_db
 from app.database.models import Load
 from app.schemas.loads import LoadRead
@@ -9,7 +10,7 @@ from app.schemas.loads import LoadRead
 router = APIRouter(prefix="/loads", tags=["loads"])
 
 
-@router.get("/", response_model=list[LoadRead])
+@router.get("/", response_model=list[LoadRead], dependencies=[Depends(require_admin_key)])
 def get_loads(db: Session = Depends(get_db)):
     return db.query(Load).all()
 

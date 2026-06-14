@@ -1,226 +1,419 @@
-import json
 import logging
+import random
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
+import bcrypt
 from sqlalchemy.orm import Session
 
-from app.database.models import CallRecord, Load, OutcomeEnum, SentimentEnum
+from app.database.models import CallRecord, Company, Load, OutcomeEnum, SentimentEnum
 
 logger = logging.getLogger(__name__)
 
-_SEED_FILE = Path(__file__).parent.parent.parent / "seed_loads.json"
 
-_CALL_RECORD_SPECS = [
-    # --- booked (10) ---
-    {
-        "load_index": 0, "mc_number": "MC-287364", "carrier_name": "Swift Transportation",
-        "final_rate": 2600.00, "negotiation_rounds": 3,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 720,
-    },
-    {
-        "load_index": 2, "mc_number": "MC-394821", "carrier_name": "Werner Enterprises",
-        "final_rate": 2600.00, "negotiation_rounds": 2,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 648,
-    },
-    {
-        "load_index": 4, "mc_number": "MC-512847", "carrier_name": "Heartland Express",
-        "final_rate": 2750.00, "negotiation_rounds": 1,
-        "outcome": "booked", "sentiment": "neutral", "hours_ago": 576,
-    },
-    {
-        "load_index": 7, "mc_number": "MC-628394", "carrier_name": "Schneider National",
-        "final_rate": 2700.00, "negotiation_rounds": 2,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 504,
-    },
-    {
-        "load_index": 9, "mc_number": "MC-741285", "carrier_name": "JB Hunt Transport",
-        "final_rate": 2050.00, "negotiation_rounds": 3,
-        "outcome": "booked", "sentiment": "neutral", "hours_ago": 432,
-    },
-    {
-        "load_index": 11, "mc_number": "MC-853921", "carrier_name": "Knight Transportation",
-        "final_rate": 1300.00, "negotiation_rounds": 1,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 360,
-    },
-    {
-        "load_index": 5, "mc_number": "MC-967432", "carrier_name": "USA Truck",
-        "final_rate": 1850.00, "negotiation_rounds": 2,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 312,
-    },
-    {
-        "load_index": 12, "mc_number": "MC-104857", "carrier_name": "Covenant Transport",
-        "final_rate": 975.00, "negotiation_rounds": 1,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 264,
-    },
-    {
-        "load_index": 13, "mc_number": "MC-215964", "carrier_name": "Prime Inc",
-        "final_rate": 1550.00, "negotiation_rounds": 2,
-        "outcome": "booked", "sentiment": "neutral", "hours_ago": 216,
-    },
-    {
-        "load_index": 3, "mc_number": "MC-328471", "carrier_name": "Roehl Transport",
-        "final_rate": 1900.00, "negotiation_rounds": 3,
-        "outcome": "booked", "sentiment": "positive", "hours_ago": 168,
-    },
-    # --- not_eligible (7) ---
-    {
-        "load_index": None, "mc_number": None, "carrier_name": None,
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "negative", "hours_ago": 696,
-    },
-    {
-        "load_index": None, "mc_number": "MC-000192", "carrier_name": "Unknown Carrier LLC",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "negative", "hours_ago": 624,
-    },
-    {
-        "load_index": None, "mc_number": "MC-111204", "carrier_name": "Fast Freight Co",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "negative", "hours_ago": 552,
-    },
-    {
-        "load_index": None, "mc_number": "MC-222415", "carrier_name": "QuickHaul Inc",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "neutral", "hours_ago": 480,
-    },
-    {
-        "load_index": None, "mc_number": None, "carrier_name": None,
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "negative", "hours_ago": 408,
-    },
-    {
-        "load_index": None, "mc_number": "MC-333526", "carrier_name": "Blue Ridge Transport",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "negative", "hours_ago": 336,
-    },
-    {
-        "load_index": None, "mc_number": "MC-444637", "carrier_name": "Desert Wind Carriers",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "not_eligible", "sentiment": "negative", "hours_ago": 288,
-    },
-    # --- no_match (4) ---
-    {
-        "load_index": None, "mc_number": "MC-555748", "carrier_name": "Mountainview Logistics",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "no_match", "sentiment": "neutral", "hours_ago": 528,
-    },
-    {
-        "load_index": None, "mc_number": "MC-666859", "carrier_name": "Coastal Carriers Inc",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "no_match", "sentiment": "neutral", "hours_ago": 456,
-    },
-    {
-        "load_index": None, "mc_number": "MC-777960", "carrier_name": "Prairie Wind Transport",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "no_match", "sentiment": "neutral", "hours_ago": 384,
-    },
-    {
-        "load_index": None, "mc_number": "MC-888071", "carrier_name": "Apex Freight Solutions",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "no_match", "sentiment": "neutral", "hours_ago": 240,
-    },
-    # --- rate_not_agreed (6) ---
-    {
-        "load_index": 1, "mc_number": "MC-885921", "carrier_name": "Sunrise Trucking",
-        "final_rate": None, "negotiation_rounds": 3,
-        "outcome": "rate_not_agreed", "sentiment": "negative", "hours_ago": 600,
-    },
-    {
-        "load_index": 6, "mc_number": "MC-996438", "carrier_name": "Canyon Haul LLC",
-        "final_rate": None, "negotiation_rounds": 3,
-        "outcome": "rate_not_agreed", "sentiment": "negative", "hours_ago": 480,
-    },
-    {
-        "load_index": 8, "mc_number": "MC-107542", "carrier_name": "Southern Star Freight",
-        "final_rate": None, "negotiation_rounds": 2,
-        "outcome": "rate_not_agreed", "sentiment": "neutral", "hours_ago": 360,
-    },
-    {
-        "load_index": 10, "mc_number": "MC-218643", "carrier_name": "Great Lakes Carriers",
-        "final_rate": None, "negotiation_rounds": 3,
-        "outcome": "rate_not_agreed", "sentiment": "negative", "hours_ago": 192,
-    },
-    {
-        "load_index": 1, "mc_number": "MC-329754", "carrier_name": "Ridgeline Transport",
-        "final_rate": None, "negotiation_rounds": 2,
-        "outcome": "rate_not_agreed", "sentiment": "negative", "hours_ago": 120,
-    },
-    {
-        "load_index": 6, "mc_number": "MC-440861", "carrier_name": "Sierra Nevada Freight",
-        "final_rate": None, "negotiation_rounds": 3,
-        "outcome": "rate_not_agreed", "sentiment": "negative", "hours_ago": 48,
-    },
-    # --- hung_up (3) ---
-    {
-        "load_index": None, "mc_number": None, "carrier_name": None,
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "hung_up", "sentiment": "negative", "hours_ago": 672,
-    },
-    {
-        "load_index": None, "mc_number": "MC-551972", "carrier_name": "Eagle Eye Freight",
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "hung_up", "sentiment": "negative", "hours_ago": 144,
-    },
-    {
-        "load_index": None, "mc_number": None, "carrier_name": None,
-        "final_rate": None, "negotiation_rounds": 0,
-        "outcome": "hung_up", "sentiment": "negative", "hours_ago": 72,
-    },
+def _hash(password: str) -> str:
+    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+# ---------------------------------------------------------------------------
+# Company definitions
+# ---------------------------------------------------------------------------
+
+_COMPANIES = [
+    {"name": "Acme Logistics", "username": "acme", "password": "acme1234"},
+    {"name": "Blue Ridge Freight", "username": "blueridge", "password": "ridge5678"},
+    {"name": "Coastal Carriers", "username": "coastal", "password": "coast9012"},
+]
+
+# ---------------------------------------------------------------------------
+# Load lane templates
+# ---------------------------------------------------------------------------
+
+_ACME_LANES = [
+    {"origin": "Chicago, IL", "destination": "Dallas, TX", "equipment_type": "Dry Van",
+     "miles": 920, "loadboard_rate": 2450.0, "max_rate": 2750.0, "weight": 42000,
+     "commodity_type": "Packaged Goods", "num_of_pieces": 24, "dimensions": "53ft", "notes": None},
+    {"origin": "Los Angeles, CA", "destination": "Phoenix, AZ", "equipment_type": "Reefer",
+     "miles": 370, "loadboard_rate": 1200.0, "max_rate": 1350.0, "weight": 38000,
+     "commodity_type": "Frozen Food", "num_of_pieces": 18, "dimensions": "53ft",
+     "notes": "Temperature must be maintained at -10°F"},
+    {"origin": "Atlanta, GA", "destination": "New York, NY", "equipment_type": "Dry Van",
+     "miles": 870, "loadboard_rate": 2450.0, "max_rate": 2750.0, "weight": 35000,
+     "commodity_type": "Electronics", "num_of_pieces": 200, "dimensions": "53ft",
+     "notes": "High-value freight — no drop trailer"},
+    {"origin": "Houston, TX", "destination": "Memphis, TN", "equipment_type": "Flatbed",
+     "miles": 560, "loadboard_rate": 1750.0, "max_rate": 1950.0, "weight": 44000,
+     "commodity_type": "Steel Coils", "num_of_pieces": 8, "dimensions": "48x102",
+     "notes": "Coil racks required"},
+    {"origin": "Seattle, WA", "destination": "Salt Lake City, UT", "equipment_type": "Reefer",
+     "miles": 840, "loadboard_rate": 2650.0, "max_rate": 2950.0, "weight": 40000,
+     "commodity_type": "Dairy Products", "num_of_pieces": 32, "dimensions": "53ft",
+     "notes": "34°F required throughout transit"},
+    {"origin": "Miami, FL", "destination": "Charlotte, NC", "equipment_type": "Dry Van",
+     "miles": 650, "loadboard_rate": 1750.0, "max_rate": 1950.0, "weight": 28000,
+     "commodity_type": "Retail Apparel", "num_of_pieces": 450, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Denver, CO", "destination": "Kansas City, MO", "equipment_type": "Flatbed",
+     "miles": 600, "loadboard_rate": 1800.0, "max_rate": 2050.0, "weight": 46000,
+     "commodity_type": "Construction Equipment", "num_of_pieces": 3, "dimensions": "48x102",
+     "notes": "Over-dimensional — permit in hand"},
+    {"origin": "Boston, MA", "destination": "Chicago, IL", "equipment_type": "Dry Van",
+     "miles": 980, "loadboard_rate": 2550.0, "max_rate": 2850.0, "weight": 36000,
+     "commodity_type": "Auto Parts", "num_of_pieces": 85, "dimensions": "53ft", "notes": None},
+    {"origin": "Nashville, TN", "destination": "Dallas, TX", "equipment_type": "Dry Van",
+     "miles": 670, "loadboard_rate": 1850.0, "max_rate": 2100.0, "weight": 31000,
+     "commodity_type": "Clothing", "num_of_pieces": 300, "dimensions": "53ft", "notes": None},
+    {"origin": "Portland, OR", "destination": "Sacramento, CA", "equipment_type": "Reefer",
+     "miles": 580, "loadboard_rate": 1900.0, "max_rate": 2150.0, "weight": 43000,
+     "commodity_type": "Fresh Produce", "num_of_pieces": 60, "dimensions": "53ft",
+     "notes": "USDA inspected — food-grade trailer required"},
+    {"origin": "Minneapolis, MN", "destination": "Detroit, MI", "equipment_type": "Dry Van",
+     "miles": 700, "loadboard_rate": 1850.0, "max_rate": 2100.0, "weight": 33000,
+     "commodity_type": "Packaged Goods", "num_of_pieces": 120, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Phoenix, AZ", "destination": "El Paso, TX", "equipment_type": "Flatbed",
+     "miles": 430, "loadboard_rate": 1250.0, "max_rate": 1400.0, "weight": 47000,
+     "commodity_type": "Industrial Materials", "num_of_pieces": 12, "dimensions": "48x102",
+     "notes": "Tarping required"},
+    {"origin": "St. Louis, MO", "destination": "Louisville, KY", "equipment_type": "Dry Van",
+     "miles": 265, "loadboard_rate": 900.0, "max_rate": 1050.0, "weight": 26000,
+     "commodity_type": "Consumer Goods", "num_of_pieces": 90, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Charlotte, NC", "destination": "Columbus, OH", "equipment_type": "Reefer",
+     "miles": 490, "loadboard_rate": 1450.0, "max_rate": 1650.0, "weight": 39000,
+     "commodity_type": "Meat Products", "num_of_pieces": 48, "dimensions": "53ft",
+     "notes": "28°F required — meat hooks in trailer"},
+    {"origin": "Dallas, TX", "destination": "Chicago, IL", "equipment_type": "Dry Van",
+     "miles": 920, "loadboard_rate": 2400.0, "max_rate": 2700.0, "weight": 41000,
+     "commodity_type": "Consumer Electronics", "num_of_pieces": 180, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Memphis, TN", "destination": "Atlanta, GA", "equipment_type": "Dry Van",
+     "miles": 420, "loadboard_rate": 1100.0, "max_rate": 1300.0, "weight": 29000,
+     "commodity_type": "Retail Goods", "num_of_pieces": 200, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Kansas City, MO", "destination": "Denver, CO", "equipment_type": "Flatbed",
+     "miles": 600, "loadboard_rate": 1750.0, "max_rate": 2000.0, "weight": 45000,
+     "commodity_type": "Steel Products", "num_of_pieces": 6, "dimensions": "48x102",
+     "notes": "Tarping required"},
+    {"origin": "Sacramento, CA", "destination": "Portland, OR", "equipment_type": "Reefer",
+     "miles": 580, "loadboard_rate": 1850.0, "max_rate": 2100.0, "weight": 42000,
+     "commodity_type": "Fresh Produce", "num_of_pieces": 55, "dimensions": "53ft",
+     "notes": "USDA inspected — food-grade trailer required"},
+    {"origin": "Detroit, MI", "destination": "Minneapolis, MN", "equipment_type": "Dry Van",
+     "miles": 700, "loadboard_rate": 1900.0, "max_rate": 2150.0, "weight": 34000,
+     "commodity_type": "Auto Parts", "num_of_pieces": 95, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Columbus, OH", "destination": "Charlotte, NC", "equipment_type": "Dry Van",
+     "miles": 490, "loadboard_rate": 1400.0, "max_rate": 1600.0, "weight": 30000,
+     "commodity_type": "Packaged Goods", "num_of_pieces": 110, "dimensions": "53ft",
+     "notes": None},
+]
+
+_BLUE_RIDGE_LANES = [
+    {"origin": "Denver, CO", "destination": "Albuquerque, NM", "equipment_type": "Dry Van",
+     "miles": 450, "loadboard_rate": 1400.0, "max_rate": 1600.0, "weight": 38000,
+     "commodity_type": "Auto Parts", "num_of_pieces": 75, "dimensions": "53ft", "notes": None},
+    {"origin": "Raleigh, NC", "destination": "Washington, DC", "equipment_type": "Reefer",
+     "miles": 320, "loadboard_rate": 1100.0, "max_rate": 1300.0, "weight": 35000,
+     "commodity_type": "Produce", "num_of_pieces": 40, "dimensions": "53ft",
+     "notes": "34°F required"},
+    {"origin": "Indianapolis, IN", "destination": "St. Louis, MO", "equipment_type": "Dry Van",
+     "miles": 240, "loadboard_rate": 850.0, "max_rate": 1000.0, "weight": 27000,
+     "commodity_type": "Consumer Goods", "num_of_pieces": 120, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Tampa, FL", "destination": "Nashville, TN", "equipment_type": "Dry Van",
+     "miles": 650, "loadboard_rate": 1700.0, "max_rate": 1950.0, "weight": 32000,
+     "commodity_type": "Retail Goods", "num_of_pieces": 250, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Salt Lake City, UT", "destination": "Las Vegas, NV", "equipment_type": "Flatbed",
+     "miles": 420, "loadboard_rate": 1300.0, "max_rate": 1500.0, "weight": 44000,
+     "commodity_type": "Construction Materials", "num_of_pieces": 10, "dimensions": "48x102",
+     "notes": "Tarping required"},
+    {"origin": "Cincinnati, OH", "destination": "Pittsburgh, PA", "equipment_type": "Dry Van",
+     "miles": 300, "loadboard_rate": 950.0, "max_rate": 1100.0, "weight": 29000,
+     "commodity_type": "Packaged Goods", "num_of_pieces": 85, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Oklahoma City, OK", "destination": "Houston, TX", "equipment_type": "Flatbed",
+     "miles": 440, "loadboard_rate": 1350.0, "max_rate": 1550.0, "weight": 46000,
+     "commodity_type": "Industrial Equipment", "num_of_pieces": 4, "dimensions": "48x102",
+     "notes": "Overweight — permit required"},
+    {"origin": "Cleveland, OH", "destination": "Buffalo, NY", "equipment_type": "Dry Van",
+     "miles": 185, "loadboard_rate": 750.0, "max_rate": 900.0, "weight": 24000,
+     "commodity_type": "Consumer Goods", "num_of_pieces": 60, "dimensions": "53ft",
+     "notes": None},
+]
+
+_COASTAL_LANES = [
+    {"origin": "San Diego, CA", "destination": "Tucson, AZ", "equipment_type": "Dry Van",
+     "miles": 360, "loadboard_rate": 1150.0, "max_rate": 1350.0, "weight": 30000,
+     "commodity_type": "Consumer Goods", "num_of_pieces": 95, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Jacksonville, FL", "destination": "Baltimore, MD", "equipment_type": "Reefer",
+     "miles": 890, "loadboard_rate": 2200.0, "max_rate": 2500.0, "weight": 38000,
+     "commodity_type": "Seafood", "num_of_pieces": 30, "dimensions": "53ft",
+     "notes": "32°F required"},
+    {"origin": "New Orleans, LA", "destination": "Birmingham, AL", "equipment_type": "Dry Van",
+     "miles": 350, "loadboard_rate": 1050.0, "max_rate": 1250.0, "weight": 28000,
+     "commodity_type": "Retail Goods", "num_of_pieces": 150, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Savannah, GA", "destination": "Charlotte, NC", "equipment_type": "Flatbed",
+     "miles": 380, "loadboard_rate": 1200.0, "max_rate": 1400.0, "weight": 43000,
+     "commodity_type": "Lumber", "num_of_pieces": 20, "dimensions": "48x102",
+     "notes": "Tarping required"},
+    {"origin": "Norfolk, VA", "destination": "Philadelphia, PA", "equipment_type": "Dry Van",
+     "miles": 360, "loadboard_rate": 1100.0, "max_rate": 1300.0, "weight": 32000,
+     "commodity_type": "Auto Parts", "num_of_pieces": 70, "dimensions": "53ft",
+     "notes": None},
+    {"origin": "Charleston, SC", "destination": "Atlanta, GA", "equipment_type": "Reefer",
+     "miles": 350, "loadboard_rate": 1150.0, "max_rate": 1350.0, "weight": 36000,
+     "commodity_type": "Fresh Seafood", "num_of_pieces": 25, "dimensions": "53ft",
+     "notes": "30°F required — fresh catch"},
+]
+
+# ---------------------------------------------------------------------------
+# Carrier pools
+# ---------------------------------------------------------------------------
+
+_ELIGIBLE_CARRIERS = [
+    ("MC-287364", "Swift Transportation"),
+    ("MC-394821", "Werner Enterprises"),
+    ("MC-512847", "Heartland Express"),
+    ("MC-628394", "Schneider National"),
+    ("MC-741285", "JB Hunt Transport"),
+    ("MC-853921", "Knight Transportation"),
+    ("MC-967432", "USA Truck"),
+    ("MC-104857", "Covenant Transport"),
+    ("MC-215964", "Prime Inc"),
+    ("MC-328471", "Roehl Transport"),
+    ("MC-441582", "Marten Transport"),
+    ("MC-554693", "Old Dominion"),
+    ("MC-667804", "Saia Freight"),
+    ("MC-780915", "XPO Logistics"),
+    ("MC-894026", "Coyote Logistics"),
+    ("MC-907137", "Landstar System"),
+    ("MC-120248", "Echo Global Logistics"),
+    ("MC-233359", "Total Quality Logistics"),
+    ("MC-346470", "C.H. Robinson"),
+    ("MC-459581", "RXO Transport Solutions"),
+    ("MC-572692", "Convoy Inc"),
+    ("MC-685803", "Transplace"),
+    ("MC-798914", "NFI Industries"),
+    ("MC-812025", "Hub Group"),
+    ("MC-925136", "Universal Transport"),
+]
+
+_INELIGIBLE_CARRIERS = [
+    ("MC-000192", "Unknown Carrier LLC"),
+    ("MC-111204", "Fast Freight Co"),
+    ("MC-222416", "QuickHaul Inc"),
+    ("MC-333528", "Badger Freight Inc"),
+    ("MC-444640", "Desert Wind Transport"),
+    ("MC-555752", "Sunset Haul LLC"),
+    ("MC-666864", "Frontier Trucking LLC"),
+    ("MC-777976", "Liberty Logistics"),
+    ("MC-889088", "Keystone Carriers"),
+    ("MC-990200", "Eagle Eye Freight"),
 ]
 
 
-def seed_loads(db: Session) -> None:
-    existing = db.query(Load).count()
-    if existing > 0:
-        logger.info("Loads table already populated (%d rows) — skipping seed", existing)
-        return
+# ---------------------------------------------------------------------------
+# Seed helpers
+# ---------------------------------------------------------------------------
 
-    records = json.loads(_SEED_FILE.read_text())
-    logger.info("Seeding %d loads from %s", len(records), _SEED_FILE)
-
-    loads = [
-        Load(
-            **{
-                **r,
-                "pickup_datetime": datetime.fromisoformat(r["pickup_datetime"]),
-                "delivery_datetime": datetime.fromisoformat(r["delivery_datetime"]),
-            }
+def _make_loads(company_id: int, lanes: list[dict], base_dt: datetime) -> list[Load]:
+    loads = []
+    for i, lane in enumerate(lanes):
+        pickup = base_dt + timedelta(days=7 + i % 14)
+        delivery = pickup + timedelta(days=2)
+        loads.append(
+            Load(
+                company_id=company_id,
+                origin=lane["origin"],
+                destination=lane["destination"],
+                pickup_datetime=pickup.replace(tzinfo=None),
+                delivery_datetime=delivery.replace(tzinfo=None),
+                equipment_type=lane["equipment_type"],
+                loadboard_rate=lane["loadboard_rate"],
+                max_rate=lane["max_rate"],
+                notes=lane.get("notes"),
+                weight=lane["weight"],
+                commodity_type=lane["commodity_type"],
+                num_of_pieces=lane["num_of_pieces"],
+                miles=lane["miles"],
+                dimensions=lane.get("dimensions"),
+                booked=False,
+            )
         )
-        for r in records
-    ]
-    db.add_all(loads)
-    db.commit()
-    logger.info("Seeding complete — %d loads inserted", len(loads))
+    return loads
 
 
-def seed_call_records(db: Session) -> None:
-    existing = db.query(CallRecord).count()
-    if existing > 0:
-        logger.info("CallRecord table already populated (%d rows) — skipping seed", existing)
-        return
+def _generate_calls(
+    rng: random.Random,
+    company_id: int,
+    loads: list[Load],
+    num_calls: int,
+    days_back: int = 60,
+) -> list[CallRecord]:
+    """
+    Generate num_calls synthetic call records spread over the last days_back days.
 
-    loads = db.query(Load).order_by(Load.load_id).all()
+    Outcome distribution: booked 35%, not_eligible 20%, no_match 10%,
+    rate_not_agreed 25%, hung_up 10%.
+
+    final_rate for booked calls follows a Beta(1.5, 4) distribution over
+    [loadboard_rate, max_rate], biasing toward the lower end (agent resists
+    conceding margin).
+    """
     now = datetime.now(timezone.utc)
+    outcomes = rng.choices(
+        population=[
+            OutcomeEnum.booked,
+            OutcomeEnum.not_eligible,
+            OutcomeEnum.no_match,
+            OutcomeEnum.rate_not_agreed,
+            OutcomeEnum.hung_up,
+        ],
+        weights=[35, 20, 10, 25, 10],
+        k=num_calls,
+    )
 
-    logger.info("Seeding %d call records", len(_CALL_RECORD_SPECS))
+    records = []
+    for outcome in outcomes:
+        days_ago = rng.uniform(0.5, days_back)
+        timestamp = now - timedelta(days=days_ago)
 
-    records = [
-        CallRecord(
-            timestamp=now - timedelta(hours=spec["hours_ago"]),
-            mc_number=spec["mc_number"],
-            carrier_name=spec["carrier_name"],
-            load_id=loads[spec["load_index"]].load_id if spec["load_index"] is not None else None,
-            loadboard_rate=loads[spec["load_index"]].loadboard_rate if spec["load_index"] is not None else None,
-            max_rate=loads[spec["load_index"]].max_rate if spec["load_index"] is not None else None,
-            final_rate=spec["final_rate"],
-            negotiation_rounds=spec["negotiation_rounds"],
-            outcome=OutcomeEnum(spec["outcome"]),
-            sentiment=SentimentEnum(spec["sentiment"]),
+        mc_number = None
+        carrier_name = None
+        load_id = None
+        loadboard_rate = None
+        max_rate = None
+        final_rate = None
+        negotiation_rounds = 0
+        sentiment = SentimentEnum.neutral
+
+        if outcome == OutcomeEnum.booked:
+            load = rng.choice(loads)
+            mc_number, carrier_name = rng.choice(_ELIGIBLE_CARRIERS)
+            load_id = load.load_id
+            loadboard_rate = load.loadboard_rate
+            max_rate = load.max_rate
+            band = max_rate - loadboard_rate
+            position = rng.betavariate(1.5, 4.0)
+            final_rate = round(loadboard_rate + position * band, 0)
+            final_rate = min(final_rate, max_rate)
+            negotiation_rounds = rng.choices([1, 2, 3], weights=[30, 50, 20])[0]
+            sentiment = rng.choices(
+                [SentimentEnum.positive, SentimentEnum.neutral, SentimentEnum.negative],
+                weights=[60, 35, 5],
+            )[0]
+
+        elif outcome == OutcomeEnum.not_eligible:
+            if rng.random() < 0.7:
+                mc_number, carrier_name = rng.choice(_INELIGIBLE_CARRIERS)
+            sentiment = rng.choices(
+                [SentimentEnum.positive, SentimentEnum.neutral, SentimentEnum.negative],
+                weights=[5, 15, 80],
+            )[0]
+
+        elif outcome == OutcomeEnum.no_match:
+            mc_number, carrier_name = rng.choice(_ELIGIBLE_CARRIERS)
+            sentiment = rng.choices(
+                [SentimentEnum.positive, SentimentEnum.neutral, SentimentEnum.negative],
+                weights=[10, 75, 15],
+            )[0]
+
+        elif outcome == OutcomeEnum.rate_not_agreed:
+            load = rng.choice(loads)
+            mc_number, carrier_name = rng.choice(_ELIGIBLE_CARRIERS)
+            load_id = load.load_id
+            loadboard_rate = load.loadboard_rate
+            max_rate = load.max_rate
+            negotiation_rounds = rng.choices([2, 3], weights=[40, 60])[0]
+            sentiment = rng.choices(
+                [SentimentEnum.positive, SentimentEnum.neutral, SentimentEnum.negative],
+                weights=[5, 30, 65],
+            )[0]
+
+        else:  # hung_up
+            if rng.random() < 0.4:
+                mc_number, carrier_name = rng.choice(_ELIGIBLE_CARRIERS)
+            sentiment = SentimentEnum.negative
+
+        records.append(
+            CallRecord(
+                timestamp=timestamp.replace(tzinfo=None),
+                company_id=company_id,
+                mc_number=mc_number,
+                carrier_name=carrier_name,
+                load_id=load_id,
+                loadboard_rate=loadboard_rate,
+                max_rate=max_rate,
+                final_rate=final_rate,
+                negotiation_rounds=negotiation_rounds,
+                outcome=outcome,
+                sentiment=sentiment,
+            )
         )
-        for spec in _CALL_RECORD_SPECS
-    ]
 
-    db.add_all(records)
+    return records
+
+
+# ---------------------------------------------------------------------------
+# Public seed entry point
+# ---------------------------------------------------------------------------
+
+def seed_all(db: Session) -> None:
+    if db.query(Company).count() > 0:
+        logger.info("Database already seeded — skipping")
+        return
+
+    logger.info("Seeding companies...")
+    companies = [
+        Company(
+            name=c["name"],
+            username=c["username"],
+            password_hash=_hash(c["password"]),
+        )
+        for c in _COMPANIES
+    ]
+    db.add_all(companies)
+    db.flush()  # assign company_ids before creating loads
+
+    acme, blue_ridge, coastal = companies
+
+    logger.info("Seeding loads...")
+    base_dt = datetime.now(timezone.utc)
+    acme_loads = _make_loads(acme.company_id, _ACME_LANES, base_dt)
+    br_loads = _make_loads(blue_ridge.company_id, _BLUE_RIDGE_LANES, base_dt)
+    coastal_loads = _make_loads(coastal.company_id, _COASTAL_LANES, base_dt)
+
+    db.add_all(acme_loads + br_loads + coastal_loads)
+    db.flush()  # assign load_ids before creating call records
+
+    logger.info("Seeding call records (fixed seed rng=42)...")
+    rng = random.Random(42)
+
+    acme_calls = _generate_calls(rng, acme.company_id, acme_loads, num_calls=200)
+    br_calls = _generate_calls(rng, blue_ridge.company_id, br_loads, num_calls=30)
+    coastal_calls = _generate_calls(rng, coastal.company_id, coastal_loads, num_calls=25)
+
+    db.add_all(acme_calls + br_calls + coastal_calls)
+    db.flush()
+
+    # Mark loads as booked where a booked call references them
+    booked_ids = {
+        r.load_id
+        for r in (acme_calls + br_calls + coastal_calls)
+        if r.outcome == OutcomeEnum.booked and r.load_id is not None
+    }
+    if booked_ids:
+        db.query(Load).filter(Load.load_id.in_(booked_ids)).update(
+            {"booked": True}, synchronize_session=False
+        )
+
     db.commit()
-    logger.info("Seeding complete — %d call records inserted", len(records))
+    total = len(acme_calls) + len(br_calls) + len(coastal_calls)
+    logger.info(
+        "Seed complete — %d companies, %d loads, %d call records",
+        len(companies),
+        len(acme_loads) + len(br_loads) + len(coastal_loads),
+        total,
+    )
