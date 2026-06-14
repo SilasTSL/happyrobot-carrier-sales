@@ -272,7 +272,7 @@ def _make_loads(company_id: int, lanes: list[dict], base_dt: datetime) -> list[L
                 delivery_datetime=delivery.replace(tzinfo=None),
                 equipment_type=lane["equipment_type"],
                 loadboard_rate=lane["loadboard_rate"],
-                max_rate=round(lane["loadboard_rate"] * 0.88, 0),
+                max_rate=lane["max_rate"],
                 notes=lane.get("notes"),
                 weight=lane["weight"],
                 commodity_type=lane["commodity_type"],
@@ -339,10 +339,10 @@ def _generate_calls(
             load_id = load.load_id
             loadboard_rate = load.loadboard_rate
             max_rate = load.max_rate
-            band = loadboard_rate - max_rate
+            band = max_rate - loadboard_rate
             position = rng.betavariate(1.5, 4.0)
-            final_rate = round(max_rate + position * band, 0)
-            final_rate = min(final_rate, loadboard_rate)
+            final_rate = round(loadboard_rate + position * band, 0)
+            final_rate = min(final_rate, max_rate)
             negotiation_rounds = rng.choices([1, 2, 3], weights=[30, 50, 20])[0]
             sentiment = rng.choices(
                 [SentimentEnum.positive, SentimentEnum.neutral, SentimentEnum.negative],

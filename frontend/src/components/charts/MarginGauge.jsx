@@ -38,17 +38,17 @@ export default function MarginGauge({ summary }) {
           </div>
           <GaugeBar value={headroom} color={colorFor(headroom)} />
           <p className="text-xs text-slate-400 mt-1">
-            How far toward the loadboard ceiling the agent conceded. Lower = more margin retained.
+            How far into the loadboard→max band the agent conceded. Lower = more margin retained.
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
           <div>
             <p className="text-xs text-slate-500 mb-0.5">Avg. rate concession</p>
-            <p className={`text-xl font-bold tabular-nums ${rateDelta == null ? 'text-slate-900' : rateDelta <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              {rateDelta != null ? `${rateDelta < 0 ? '-' : '+'}$${Math.abs(rateDelta).toFixed(0)}` : '—'}
+            <p className="text-xl font-bold tabular-nums text-slate-900">
+              {rateDelta != null ? `+$${rateDelta.toFixed(0)}` : '—'}
             </p>
-            <p className="text-xs text-slate-400">vs. loadboard rate</p>
+            <p className="text-xs text-slate-400">above loadboard rate</p>
           </div>
           <div>
             <p className="text-xs text-slate-500 mb-0.5">At max rate</p>
