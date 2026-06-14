@@ -92,9 +92,11 @@ export default function OverviewPage() {
               />
               <KpiCard
                 label="Avg. Rate Concession"
-                value={s.avg_rate_delta.value != null ? `+$${decimal(s.avg_rate_delta.value, 0)}` : '—'}
+                value={s.avg_rate_delta.value != null
+                  ? `${s.avg_rate_delta.value < 0 ? '-' : '+'}$${decimal(Math.abs(s.avg_rate_delta.value), 0)}`
+                  : '—'}
                 kpi={s.avg_rate_delta}
-                subtext="above loadboard rate"
+                subtext="vs. loadboard rate"
                 higherIsBetter={false}
               />
             </>
