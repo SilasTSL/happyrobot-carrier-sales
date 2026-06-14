@@ -6,6 +6,7 @@ from app.database.models import OutcomeEnum, SentimentEnum
 
 
 class CallRecordCreate(BaseModel):
+    company_id: int
     mc_number: str | None = None
     carrier_name: str | None = None
     load_id: int | None = None
@@ -19,6 +20,7 @@ class CallRecordRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     call_id: str
+    company_id: int
     timestamp: datetime
     mc_number: str | None
     carrier_name: str | None

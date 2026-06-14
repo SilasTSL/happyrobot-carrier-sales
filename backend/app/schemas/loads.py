@@ -7,6 +7,7 @@ class LoadRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     load_id: int
+    company_id: int
     origin: str
     destination: str
     pickup_datetime: datetime
