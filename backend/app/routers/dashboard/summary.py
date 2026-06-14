@@ -69,10 +69,10 @@ def _compute_kpis(db: Session, company_id: int, start: datetime, end: datetime) 
     calls_at_max = 0
     for r in booked_records:
         if r.final_rate is not None and r.loadboard_rate is not None and r.max_rate is not None:
-            band = r.loadboard_rate - r.max_rate
+            band = r.max_rate - r.loadboard_rate
             if band > 0:
-                headrooms.append((r.final_rate - r.max_rate) / band * 100)
-            if r.final_rate >= r.loadboard_rate:
+                headrooms.append((r.final_rate - r.loadboard_rate) / band * 100)
+            if r.final_rate >= r.max_rate:
                 calls_at_max += 1
 
     avg_headroom = round(sum(headrooms) / len(headrooms), 1) if headrooms else None
