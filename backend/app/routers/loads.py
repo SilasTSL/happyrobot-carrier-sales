@@ -17,6 +17,7 @@ def get_loads(db: Session = Depends(get_db)):
 
 @router.get("/search", response_model=list[LoadRead])
 def search_loads(
+    company_id: int = Query(...),
     origin: str = Query(...),
     equipment_type: str = Query(...),
     db: Session = Depends(get_db),
@@ -27,6 +28,7 @@ def search_loads(
     return (
         db.query(Load)
         .filter(
+            Load.company_id == company_id,
             Load.booked == False,
             func.lower(Load.origin).like(f"%{origin_q}%"),
             func.lower(Load.equipment_type).like(f"%{equipment_q}%"),
