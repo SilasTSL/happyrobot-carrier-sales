@@ -11,7 +11,7 @@ class CallRecordCreate(BaseModel):
     carrier_name: str | None = None
     load_id: int | None = None
     final_rate: float | None = None
-    negotiation_rounds: int = None
+    negotiation_rounds: int | None = None
     outcome: OutcomeEnum
     sentiment: SentimentEnum
 
