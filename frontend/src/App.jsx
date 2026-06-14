@@ -7,7 +7,7 @@ import OverviewPage from './pages/OverviewPage'
 import CallLogPage from './pages/CallLogPage'
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 60_000, retry: 1 } },
+  defaultOptions: { queries: { staleTime: 0, retry: 1 } },
 })
 
 function ProtectedRoute({ children }) {
