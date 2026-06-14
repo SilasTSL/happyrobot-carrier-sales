@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from app.database.models import OutcomeEnum, SentimentEnum
 
@@ -11,7 +11,7 @@ class CallRecordCreate(BaseModel):
     carrier_name: str | None = None
     load_id: int | None = None
     final_rate: float | None = None
-    negotiation_rounds: int = 0
+    negotiation_rounds: int = Field(default=0, validation_alias=AliasChoices("negotiation_rounds", "negotation_rounds"))
     outcome: OutcomeEnum
     sentiment: SentimentEnum
 
