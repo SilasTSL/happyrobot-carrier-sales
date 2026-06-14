@@ -291,9 +291,13 @@ def _generate_calls(
     loads: list[Load],
     num_calls: int,
     days_back: int = 60,
+    days_forward: int = 7,
 ) -> list[CallRecord]:
     """
-    Generate num_calls synthetic call records spread over the last days_back days.
+    Generate num_calls synthetic call records spread over the last days_back days
+    and up to days_forward days into the future. Future-dated records are stored
+    but excluded by dashboard queries (which cap end_dt at now), so the dashboard
+    always has recent data even if viewed days after the initial seed.
 
     Outcome distribution: booked 35%, not_eligible 20%, no_match 10%,
     rate_not_agreed 25%, hung_up 10%.
@@ -317,7 +321,7 @@ def _generate_calls(
 
     records = []
     for outcome in outcomes:
-        days_ago = rng.uniform(0.5, days_back)
+        days_ago = rng.uniform(-days_forward, days_back)
         timestamp = now - timedelta(days=days_ago)
 
         mc_number = None
