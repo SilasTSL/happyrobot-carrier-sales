@@ -85,10 +85,10 @@ export default function OverviewPage() {
                 kpi={s.loads_booked}
               />
               <KpiCard
-                label="Committed Revenue"
+                label="Booked Load Value"
                 value={currency(s.total_committed_revenue.value)}
                 kpi={s.total_committed_revenue}
-                subtext="sum of final rates"
+                subtext="total carrier cost"
               />
               <KpiCard
                 label="Avg. Rate Concession"
