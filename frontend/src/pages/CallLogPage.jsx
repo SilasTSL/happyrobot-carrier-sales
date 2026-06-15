@@ -90,7 +90,7 @@ const COLUMNS = [
   {
     accessorKey: 'mc_number',
     header: 'MC#',
-    cell: ({ getValue }) => <span className="text-xs text-slate-500 font-mono">{getValue()?.replace(/^MC\s*/i, '') ?? '—'}</span>,
+    cell: ({ getValue }) => <span className="text-xs text-slate-500 font-mono">{getValue()?.replace(/^MC-\s*/i, '') ?? '—'}</span>,
     size: 100,
   },
   {
